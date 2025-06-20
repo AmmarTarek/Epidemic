@@ -4,10 +4,9 @@
 
 namespace HealthApi.Models
 {
-
+    
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<User> Users { get; set; }
         public DbSet<TestRecord> TestRecords { get; set; }
@@ -26,6 +25,9 @@ namespace HealthApi.Models
         public DbSet<Role> Roles { get; set; }
         public DbSet<Place> Places { get; set; }
 
+
+        public AppDbContext() : base() { }
+        public AppDbContext(DbContextOptions options) : base(options) { }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
