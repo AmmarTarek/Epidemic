@@ -33,6 +33,12 @@ namespace HealthApi.Models
             base.OnModelCreating(modelBuilder);
 
             // علاقات اختيارية/توضيحية
+
+            modelBuilder.Entity<UserLocation>()
+            .HasOne(ul => ul.User)           // UserLocation له User واحد
+            .WithOne(u => u.UserLocation)   // والـ User ده له UserLocation واحد
+            .HasForeignKey<UserLocation>(ul => ul.UserId); // المفتاح الأجنبي موجود في UserLocation وهو الـ UserId
+
             modelBuilder.Entity<Notification>()
                 .HasOne(n => n.TargetArea)
                 .WithMany()

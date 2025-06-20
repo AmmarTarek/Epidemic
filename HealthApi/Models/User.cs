@@ -23,7 +23,9 @@ public class User
     public DateTime CreatedAtTime { get; set; } = DateTime.UtcNow;
 
     public int? LocationId { get; set; }
-    public QuarantineLocation Location { get; set; }
+
+    //navigation
+    public UserLocation UserLocation { get; set; }
 
     public ICollection<TestRecord> TestRecords { get; set; } = new List<TestRecord>();
     public ICollection<VaccineRecord> VaccineRecords { get; set; } = new List<VaccineRecord>();
