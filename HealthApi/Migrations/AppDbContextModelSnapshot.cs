@@ -350,7 +350,8 @@ namespace HealthApi.Migrations
 
                     b.HasKey("LocationId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
                     b.ToTable("UserLocations");
                 });
@@ -469,8 +470,6 @@ namespace HealthApi.Migrations
 
                     b.HasIndex("EPassStatusId");
 
-                    b.HasIndex("LocationId");
-
                     b.HasIndex("RoleId");
 
                     b.ToTable("Users");
@@ -556,8 +555,8 @@ namespace HealthApi.Migrations
             modelBuilder.Entity("HealthApi.Models.UserLocation", b =>
                 {
                     b.HasOne("User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
+                        .WithOne("UserLocation")
+                        .HasForeignKey("HealthApi.Models.UserLocation", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -599,10 +598,6 @@ namespace HealthApi.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("HealthApi.Models.QuarantineLocation", "Location")
-                        .WithMany()
-                        .HasForeignKey("LocationId");
-
                     b.HasOne("HealthApi.Models.Role", "Role")
                         .WithMany()
                         .HasForeignKey("RoleId")
@@ -610,8 +605,6 @@ namespace HealthApi.Migrations
                         .IsRequired();
 
                     b.Navigation("EPassStatus");
-
-                    b.Navigation("Location");
 
                     b.Navigation("Role");
                 });
@@ -628,6 +621,9 @@ namespace HealthApi.Migrations
                     b.Navigation("SelfAssessments");
 
                     b.Navigation("TestRecords");
+
+                    b.Navigation("UserLocation")
+                        .IsRequired();
 
                     b.Navigation("VaccineRecords");
                 });

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HealthApi.Migrations
 {
     /// <inheritdoc />
-    public partial class init : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -156,11 +156,6 @@ namespace HealthApi.Migrations
                         principalTable: "EPasses",
                         principalColumn: "EPassID",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Users_QuarantineLocations_LocationId",
-                        column: x => x.LocationId,
-                        principalTable: "QuarantineLocations",
-                        principalColumn: "LocationId");
                     table.ForeignKey(
                         name: "FK_Users_Roles_RoleId",
                         column: x => x.RoleId,
@@ -397,17 +392,13 @@ namespace HealthApi.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_UserLocations_UserId",
                 table: "UserLocations",
-                column: "UserId");
+                column: "UserId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_EPassStatusId",
                 table: "Users",
                 column: "EPassStatusId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_LocationId",
-                table: "Users",
-                column: "LocationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_RoleId",
@@ -446,6 +437,9 @@ namespace HealthApi.Migrations
                 name: "Places");
 
             migrationBuilder.DropTable(
+                name: "QuarantineLocations");
+
+            migrationBuilder.DropTable(
                 name: "SelfAssessments");
 
             migrationBuilder.DropTable(
@@ -474,9 +468,6 @@ namespace HealthApi.Migrations
 
             migrationBuilder.DropTable(
                 name: "EPasses");
-
-            migrationBuilder.DropTable(
-                name: "QuarantineLocations");
 
             migrationBuilder.DropTable(
                 name: "Roles");
