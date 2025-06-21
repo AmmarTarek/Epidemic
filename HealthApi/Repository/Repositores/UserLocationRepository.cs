@@ -16,12 +16,29 @@ namespace HealthApi.Repository.Repositores
 
         public UserLocation GetUserLastLocation(int userId)
         {
-            throw new NotImplementedException();
+            if (userId < 0) 
+            {
+                return null;
+            }
+
+            return context.UserLocations.FirstOrDefault(i => i.UserId == userId);
         }
 
-        public UserLocation SetUserLastLocation(int userId, double longitude, double latitude)
+        public void SetUserLastLocation(int userId, double longitude, double latitude)
         {
-            throw new NotImplementedException();
+            if (userId <= 0)
+            {
+                throw new ArgumentException();
+            }
+
+            var userLocation = new UserLocation();
+
+            userLocation.UserId = userId;
+            userLocation.Longitude = longitude;
+            userLocation.Latitude = latitude;
+
+            context.UserLocations.Add(userLocation);
+            context.SaveChanges();
         }
     }
 }
