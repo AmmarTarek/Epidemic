@@ -1,7 +1,7 @@
-
-using HealthApi.Models;
+﻿using HealthApi.Models;
 using Microsoft.EntityFrameworkCore;
 using HealthApi.Repository;
+
 namespace HealthApi
 {
     public class Program
@@ -11,7 +11,6 @@ namespace HealthApi
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddControllers();
 
             builder.Services.AddDbContext<AppDbContext>(options =>
@@ -19,7 +18,18 @@ namespace HealthApi
 
             builder.Services.AddScoped<ISelfAssessmentRepository, SelfAssessmentRepository>();
 
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            // 👇 Add CORS service
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend",
+                    policy =>
+                    {
+                        policy.WithOrigins("http://localhost:3000") // React frontend URL
+                              .AllowAnyHeader()
+                              .AllowAnyMethod();
+                    });
+            });
+
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
@@ -32,8 +42,10 @@ namespace HealthApi
                 app.UseSwaggerUI();
             }
 
-            app.UseAuthorization();
+            // 👇 Apply the CORS policy before authorization/mapping
+            app.UseCors("AllowFrontend");
 
+            app.UseAuthorization();
 
             app.MapControllers();
 

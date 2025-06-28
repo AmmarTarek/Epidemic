@@ -8,7 +8,8 @@ namespace HealthApi.Models
 
         public string Title { get; set; } = null!;
         public string Message { get; set; } = null!;
-            
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
         public int? TargetAreaId { get; set; }
         public RiskArea? TargetArea { get; set; }
 
