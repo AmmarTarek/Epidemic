@@ -49,21 +49,32 @@ namespace HealthApi.Controllers
         }
 
         [HttpGet("api/GetMyNotifications/{userId}")]
-        public IActionResult GetMyNotifications(int userId)
+        public IActionResult GetMyNotifications(int userId, int pageNumber = 1, int pageSize = 5)
         {
             if (userId <= 0)
-            {
                 return BadRequest("Invalid user ID.");
-            }
-            var notifications = context.Notifications
+
+            var query = context.Notifications
                 .Where(n => n.TatgetUserId == userId)
-                .OrderByDescending(n => n.CreatedAt)
+                .OrderByDescending(n => n.CreatedAt);
+
+            var totalCount = query.Count();
+
+            var pagedNotifications = query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToList();
-            if (notifications == null || !notifications.Any())
+
+            var result = new
             {
-                return NotFound("No notifications found for this user.");
-            }
-            return Ok(notifications);
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize),
+                Notifications = pagedNotifications
+            };
+
+            return Ok(result);
         }
 
 
