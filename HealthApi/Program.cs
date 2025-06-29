@@ -1,6 +1,11 @@
-﻿using HealthApi.Models;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using HealthApi.Models;
 using Microsoft.EntityFrameworkCore;
 using HealthApi.Repository;
+using HealthApi.Repository.Repos_A;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
 
 namespace HealthApi
 {
@@ -33,6 +38,21 @@ namespace HealthApi
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(opt =>
+                {
+                    var key = builder.Configuration["Jwt:Key"];
+                    opt.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key!)),
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        ValidAudience = builder.Configuration["Jwt:Audience"]
+                    };
+                });
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -46,7 +66,7 @@ namespace HealthApi
             app.UseCors("AllowFrontend");
 
             app.UseAuthorization();
-
+            app.UseAuthentication();
             app.MapControllers();
 
             app.Run();
