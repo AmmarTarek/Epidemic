@@ -48,10 +48,25 @@ namespace HealthApi.Controllers
 
         }
 
-        public class UserIdsRequest
+        [HttpGet("api/GetMyNotifications/{userId}")]
+        public IActionResult GetMyNotifications(int userId)
         {
-            public List<int> UserIds { get; set; }
+            if (userId <= 0)
+            {
+                return BadRequest("Invalid user ID.");
+            }
+            var notifications = context.Notifications
+                .Where(n => n.TatgetUserId == userId)
+                .OrderByDescending(n => n.CreatedAt)
+                .ToList();
+            if (notifications == null || !notifications.Any())
+            {
+                return NotFound("No notifications found for this user.");
+            }
+            return Ok(notifications);
         }
+
+
         public class NotificationRequest
         {
             public List<int> UserIds { get; set; }
