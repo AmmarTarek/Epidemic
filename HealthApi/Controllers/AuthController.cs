@@ -34,7 +34,6 @@ namespace HealthApi.Controllers
                 Sex = dto.Sex,
                 Job = dto.Job,
                 PhoneNumber = dto.PhoneNumber,
-                RoleId = dto.RoleId,
                 CreatedAtTime = DateTime.UtcNow
             };
 

@@ -10,7 +10,6 @@
         public string Sex { get; set; } = null!;
         public string Job { get; set; } = null!;
         public string PhoneNumber { get; set; } = null!;
-        public int RoleId { get; set; } = 1;
     }
 
 
