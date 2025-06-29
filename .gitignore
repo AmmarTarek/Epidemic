@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/HealthApi/HealthApi.csproj
+/HealthApi/Program.cs
+/HealthApi/appsettings.json
