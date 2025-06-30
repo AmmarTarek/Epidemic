@@ -10,13 +10,13 @@ public class User
     public string Email { get; set; } = null!;
     public string Password { get; set; } = null!;
     public DateTime DateOfBirth { get; set; }
-    public string Sex { get; set; } = null!; // "Male", "Female"
+    public string Sex { get; set; } = null!;
     public string Job { get; set; } = null!;
     public bool? IsFlagged { get; set; } = false;
     public int RoleId { get; set; }
     public Role Role { get; set; } = null!;
 
-    public int EPassStatusId { get; set; }
+    public int EPassStatusId { get; set; } = 4;
     public EPass EPassStatus { get; set; } = null!;
 
     public string PhoneNumber { get; set; } = null!;
