@@ -12,7 +12,7 @@ public class User
     public DateTime DateOfBirth { get; set; }
     public string Sex { get; set; } = null!; // "Male", "Female"
     public string Job { get; set; } = null!;
-
+    public bool? IsFlagged { get; set; } = false;
     public int RoleId { get; set; }
     public Role Role { get; set; } = null!;
 

@@ -1,6 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using HealthApi.DTO;
 using HealthApi.Models;
-using HealthApi.DTO;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 
 
@@ -124,6 +128,68 @@ namespace HealthApi.Controllers
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+        [HttpGet("api/Profile")]
+        //[Authorize] // Requires JWT authentication
+        public async Task<IActionResult> GetProfile()
+        {
+            // Get user ID from the JWT token
+            //var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = 5;
+
+
+            if (userId == null)
+                return Unauthorized();
+
+            var user = await context.Users.FindAsync(userId);
+
+            if (user == null)
+                return NotFound();
+
+            var profile = new ProfileDto
+            {
+                FullName = user.FirstName + " " + user.LastName,
+                Email = user.Email
+            };
+
+            return Ok(profile);
+        }
+
+
+
+        [HttpPost("api/Profile/ChangePassword")]
+        //[Authorize]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDTO dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.OldPassword) ||
+                string.IsNullOrWhiteSpace(dto.NewPassword) ||
+                string.IsNullOrWhiteSpace(dto.ConfirmPassword))
+            {
+                return BadRequest("All fields are required.");
+            }
+
+            if (dto.NewPassword != dto.ConfirmPassword)
+            {
+                return BadRequest("New password and confirmation do not match.");
+            }
+
+            //var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = 5;
+
+            if (userId == null) return Unauthorized();
+
+            var user = await context.Users.FindAsync(userId);
+            if (user == null) return NotFound();
+
+            //I need i hashing method here first to compare the hashed passwords 
+
+            user.Password = dto.NewPassword;
+
+            context.Users.Update(user);
+            context.SaveChanges();  
+
+            return Ok(new { message = "Password changed successfully" });
         }
 
 

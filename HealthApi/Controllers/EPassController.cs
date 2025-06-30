@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using HealthApi.Models;
+﻿using HealthApi.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace HealthApi.Controllers
 {
@@ -148,5 +150,22 @@ namespace HealthApi.Controllers
             public List<int> UserIds { get; set; }
             public bool status { get; set; } 
         }
+
+
+        [HttpGet("api/EPass/status")]
+        //[Authorize] // Requires token
+        public async Task<IActionResult> GetStatus()
+        {
+            //var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = 5;
+
+            if (userId == null) return Unauthorized();
+
+            var user = await context.Users.FindAsync(userId);
+            if (user == null) return NotFound();
+
+            return Ok((int)user.EPassStatusId);
+        }
+        
     }
 }

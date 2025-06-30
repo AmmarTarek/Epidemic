@@ -13,7 +13,7 @@ namespace HealthApi.Models
 
         public DateTime RequestedDate { get; set; } = DateTime.UtcNow;
 
-        public string Status { get; set; } = null!; // "Pending", "Approved", "Denied"
+        public string Status { get; set; } = "Pending"; // "Pending", "Approved", "Denied"
     }
 
 }
