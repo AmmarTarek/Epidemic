@@ -68,6 +68,13 @@ namespace HealthApi.Controllers
                 //    query = query.Where(pr => pr.User.AreaName.Contains(filter.AreaName));
                 //}
 
+                // Filter by user name
+                if (!string.IsNullOrEmpty(filter.UserName))
+                {
+                    query = query.Where(u =>
+                        (u.User.FirstName + " " + u.User.LastName).Contains(filter.UserName));
+                }
+
                 // Filter by gender
                 if (!string.IsNullOrWhiteSpace(filter.Gender))
                 {
@@ -92,6 +99,27 @@ namespace HealthApi.Controllers
                     }
                 }
 
+                // IsFlagged filtering
+                if (!string.IsNullOrWhiteSpace(filter.IsFlagged))
+                {
+                    if (bool.TryParse(filter.IsFlagged, out var isFlaggedValue))
+                    {
+                        query = query.Where(u => u.User.IsFlagged == isFlaggedValue);
+                    }
+                }
+
+                // E-Pass filtering
+                if (!string.IsNullOrEmpty(filter.EPass))
+                {
+                    var allowed = filter.EPass == "Allowed";
+                    var matchingEPassIds = context.EPasses
+                        .Where(ep => ep.Status == allowed)
+                        .Select(ep => ep.EPassID)
+                        .ToList();
+
+                    query = query.Where(u => matchingEPassIds.Contains(u.User.EPassStatusId));
+                }
+
                 query = query.OrderByDescending(pr => pr.RequestedDate);
 
                 var permitRequests = query.ToList();
@@ -106,8 +134,9 @@ namespace HealthApi.Controllers
                     FullName = $"{pr.User.FirstName} {pr.User.LastName}",
                     Age = (int)((DateTime.Today - pr.User.DateOfBirth).TotalDays / 365.25),
                     //AreaName = pr.User.AreaName,
+                    AreaName = "Cairo",
                     Gender = pr.User.Sex,
-                    EPass = context.EPasses.FirstOrDefault(ep => ep.EPassID == pr.User.EPassStatusId)?.Status ?? false,
+                    EPass = (bool)(context.EPasses.FirstOrDefault(ep => ep.EPassID == pr.User.EPassStatusId)?.Status ?? false),
                     IsFlagged = (bool)pr.User.IsFlagged,
                     Purpose = pr.Purpose,
                     Status = pr.Status
@@ -142,10 +171,13 @@ namespace HealthApi.Controllers
         public class PermitRequestFilterDTO
         {
             public string? Status { get; set; }
+            public string? UserName { get; set; }
             public string? AreaName { get; set; }
             public string? Gender { get; set; }
             public int? MinAge { get; set; }
             public int? MaxAge { get; set; }
+            public string? EPass { get; set; } // Assuming EPass is a boolean, you might want to change this to bool?
+            public string? IsFlagged { get; set; }
         }
         public class PermitRequestDTO
         {

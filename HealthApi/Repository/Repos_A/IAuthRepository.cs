@@ -5,5 +5,6 @@
         Task<User?> LoginAsync(string email, string password);
         Task<User> RegisterAsync(User user);
         Task<bool> UserExistsAsync(string email);
+        Task<User?> GetUserByEmailAsync(string email);
     }
 }

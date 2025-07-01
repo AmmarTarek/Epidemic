@@ -13,7 +13,7 @@ public class User
     public string Sex { get; set; } = null!;
     public string Job { get; set; } = null!;
     public bool? IsFlagged { get; set; } = false;
-    public int RoleId { get; set; }
+    public int RoleId { get; set; } = 1; // Default to User role
     public Role Role { get; set; } = null!;
 
     public int EPassStatusId { get; set; } = 4;

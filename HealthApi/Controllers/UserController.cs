@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 
 
@@ -20,6 +22,7 @@ namespace HealthApi.Controllers
         }
 
 
+        // Get All Users API (Salem)
         [HttpGet("api/usersDetails")]
         public IActionResult GetAllUsersData()
         {
@@ -56,6 +59,7 @@ namespace HealthApi.Controllers
             return Ok(ListOfUsersDetails);
         }
 
+        // Filter Users API (Salem)
         [HttpPost("api/usersDetails/filter")]
         public IActionResult FilterUsers([FromBody] UserFilterDTO filter)
         {
@@ -71,7 +75,7 @@ namespace HealthApi.Controllers
 
                 //if (!string.IsNullOrEmpty(filter.AreaName))
                 //{
-                //    usersQuery = usersQuery.Where(u => u.AreaName.Contains(filter.AreaName));
+                //    usersQuery = usersQuery.Where(u => u.AreaName.Contains(filter.AreaName)); -------------------------------------Remove this in production
                 //}
 
                 if (!string.IsNullOrEmpty(filter.Gender))
@@ -107,6 +111,16 @@ namespace HealthApi.Controllers
                     usersQuery = usersQuery.Where(u => matchingEPassIds.Contains(u.EPassStatusId));
                 }
 
+                // IsFlagged filtering
+                if (!string.IsNullOrWhiteSpace(filter.IsFlagged))
+                {
+                    if (bool.TryParse(filter.IsFlagged, out var isFlaggedValue))
+                    {
+                        usersQuery = usersQuery.Where(u => u.IsFlagged == isFlaggedValue);
+                    }
+                }
+
+
                 var users = usersQuery.ToList();
 
                 if (!users.Any())
@@ -117,7 +131,7 @@ namespace HealthApi.Controllers
                     UserId = user.UserId,
                     FullName = $"{user.FirstName} {user.LastName}",
                     Gender = user.Sex,
-                    IsFlagged = false, // default — replace if stored in DB
+                    IsFlagged = user.IsFlagged ?? false,
                     EPass = (bool)(context.EPasses.FirstOrDefault(ep => ep.EPassID == user.EPassStatusId)?.Status),
                     Age = (DateTime.UtcNow - user.DateOfBirth).Days / 365
                 }).ToList();
@@ -130,13 +144,14 @@ namespace HealthApi.Controllers
             }
         }
 
+        // Get User Profile API (Salem)
         [HttpGet("api/Profile")]
         //[Authorize] // Requires JWT authentication
         public async Task<IActionResult> GetProfile()
         {
             // Get user ID from the JWT token
-            //var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userId = 5;
+            //var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); -------------------------------------Remove this in production
+            var userId = 5; 
 
 
             if (userId == null)
@@ -157,7 +172,7 @@ namespace HealthApi.Controllers
         }
 
 
-
+        // Change Password API (Salem)
         [HttpPost("api/Profile/ChangePassword")]
         //[Authorize]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDTO dto)
@@ -174,7 +189,7 @@ namespace HealthApi.Controllers
                 return BadRequest("New password and confirmation do not match.");
             }
 
-            //var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            //var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); -------------------------------------Remove this in production
             var userId = 5;
 
             if (userId == null) return Unauthorized();
@@ -191,6 +206,68 @@ namespace HealthApi.Controllers
 
             return Ok(new { message = "Password changed successfully" });
         }
+
+
+        // Saving User Location (Salem)
+        //[Authorize]
+        [HttpPost("api/Location/SaveUserLocation")]
+        public async Task<IActionResult> SaveLocation([FromBody] LocationDto dto)
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            //var userIdString = "1003"; // For testing, replace with actual user ID retrieval logic ------------------------------------- Remove this in production
+
+            if (!int.TryParse(userIdString, out var userId))
+                return Unauthorized();
+
+            // Try to find an existing location for this user
+            var existingLocation = await context.UserLocations
+                .FirstOrDefaultAsync(l => l.UserId == userId);
+
+            if (existingLocation != null)
+            {
+                // Update existing location
+                existingLocation.Latitude = dto.Latitude;
+                existingLocation.Longitude = dto.Longitude;
+                existingLocation.CreatedAtTime = DateTime.UtcNow;
+
+                context.UserLocations.Update(existingLocation);
+
+                // Optional: also update User table's LocationId if not already set
+                var user = await context.Users.FindAsync(userId);
+                if (user != null && user.LocationId != existingLocation.LocationId)
+                {
+                    user.LocationId = existingLocation.LocationId;
+                    context.Users.Update(user);
+                }
+            }
+            else
+            {
+                // No existing location, insert a new one
+                var newLocation = new UserLocation
+                {
+                    UserId = userId,
+                    Latitude = dto.Latitude,
+                    Longitude = dto.Longitude,
+                    CreatedAtTime = DateTime.UtcNow
+                };
+
+                context.UserLocations.Add(newLocation);
+                await context.SaveChangesAsync(); // Save so we can access LocationId
+
+                // Update user with this new LocationId
+                var user = await context.Users.FindAsync(userId);
+                if (user != null)
+                {
+                    user.LocationId = newLocation.LocationId;
+                    context.Users.Update(user);
+                }
+            }
+
+            await context.SaveChangesAsync(); // Final save for either path
+
+            return Ok(new { message = "Location saved successfully." });
+        }
+
 
 
 
