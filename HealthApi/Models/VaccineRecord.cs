@@ -14,6 +14,8 @@ namespace HealthApi.Models
 
         public string Status { get; set; } = null!; // "Vaccined", "Pending"
 
+        public string? StatusMessage { get; set; }
+
         public DateTime DateOfAssignment { get; set; } = DateTime.UtcNow;
         public DateTime? DateOfVaccined { get; set; }
 

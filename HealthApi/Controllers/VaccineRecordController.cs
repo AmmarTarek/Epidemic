@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using HealthApi.DTO;
-using HealthApi.Repository;
+﻿using HealthApi.DTO;
 using HealthApi.Models;
+using HealthApi.Repository;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace HealthApi.Controllers
 {
@@ -11,11 +12,13 @@ namespace HealthApi.Controllers
     public class VaccineRecordController : ControllerBase
     {
             IVaccineRecordsRepository VacRepo;
+            private readonly AppDbContext context;
 
 
-            public VaccineRecordController(IVaccineRecordsRepository _vacRepo)
+            public VaccineRecordController(IVaccineRecordsRepository _vacRepo , AppDbContext context)
             {
             VacRepo = _vacRepo;
+            this.context = context;
                 
             }
             [HttpGet]
@@ -132,6 +135,44 @@ namespace HealthApi.Controllers
             }
             return BadRequest(ModelState);
         }
+
+        [HttpGet("UserRecords")]
+        public IActionResult GetUserVaccineRecords()
+        {
+            // Use claim later; temporarily hardcoded
+            // var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userIdString = "5";
+
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
+            {
+                return Unauthorized("User not authenticated.");
+            }
+            var vaccineRecordsDetailsList = new List<VaccineRecordDTO>();
+            var vaccineRecords = context.VaccineRecords.Where(v => v.UserId == userId).ToList();
+
+            foreach (var record in vaccineRecords)
+            {
+                var vaccineType = context.VaccineTypes.FirstOrDefault(t => t.VaccineId == record.VaccineTypeId);
+                var lab = context.Labs.FirstOrDefault(l => l.LabId == record.LabId);
+
+                var recordDetails = new VaccineRecordDTO
+                {
+                    VaccineTypeName = vaccineType?.VaccineName,
+                    Status = record.Status,
+                    DateOfAssignment = record.DateOfAssignment,
+                    DateOfVaccined = record.DateOfVaccined,
+                    LabName = lab?.LabName,
+                    ContactInfo = lab?.ContactInfo,
+                    StatusMessage = record.StatusMessage
+                };
+
+                vaccineRecordsDetailsList.Add(recordDetails);
+            }
+
+            return Ok(vaccineRecordsDetailsList);
+        }
+
+
 
 
     }

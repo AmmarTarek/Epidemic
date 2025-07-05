@@ -13,6 +13,7 @@ namespace HealthApi.Models
         public TestType TestType { get; set; } = null!;
 
         public string Result { get; set; } = null!;
+        public string Details { get; set; } = null!;
 
         public DateTime DateAdministered { get; set; } = DateTime.UtcNow;
 

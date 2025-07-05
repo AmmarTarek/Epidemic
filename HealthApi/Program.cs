@@ -38,6 +38,8 @@ namespace HealthApi
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            builder.Services.AddScoped<IRiskAreaRepository, RiskAreaRepository>();
+            builder.Services.AddScoped<IVaccineRecordsRepository, VaccineRecordsRepository>();
             builder.Services.AddScoped<IAuthRepository, AuthRepository>();
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(opt =>

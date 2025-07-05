@@ -89,7 +89,7 @@ namespace HealthApi.Controllers
         public async Task<IActionResult> CheckSymptomsAsync([FromBody] SymptomRequestDTO request)
         {
 
-            //var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            //var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);-*-------------------------------------------
             var userIdString = "5";
 
             if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
