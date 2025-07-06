@@ -1,6 +1,10 @@
 ﻿using HealthApi.Models;
 using HealthApi.Repository;
 using Microsoft.AspNetCore.Mvc;
+using NetTopologySuite.Geometries.Utilities;
+using NetTopologySuite.Geometries;
+using NetTopologySuite.IO;
+using NetTopologySuite;
 
 namespace HealthApi.Controllers
 {
@@ -9,10 +13,12 @@ namespace HealthApi.Controllers
     public class RiskAreaController : Controller
     {
         IRiskAreaRepository RisRepo;
+        AppDbContext context;
 
-        public RiskAreaController(IRiskAreaRepository _risRepo)
+        public RiskAreaController(IRiskAreaRepository _risRepo , AppDbContext context)
         {
             RisRepo = _risRepo;
+            this.context = context;
 
         }
         [HttpGet]
@@ -49,5 +55,55 @@ namespace HealthApi.Controllers
             }
             return BadRequest(ModelState);
         }
+
+        [HttpPost("EditShape")]
+        public async Task<IActionResult> SaveCleanedPolygon(int oldAreaId)
+        {
+            try
+            {
+                var oldArea = context.RiskAreas.FirstOrDefault(i => i.AreaId == oldAreaId);
+                if (oldArea == null)
+                    return NotFound("Area not found.");
+
+                // 1. Read original WKT (with Z)
+                var reader = new WKTReader();
+                var geometry3D = reader.Read(oldArea.AreaGeometry);
+
+                // 2. Remove Z using GeometryEditor and valid factory
+                var geometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 0);
+                var make2D = new GeometryEditor(geometryFactory);
+                var geometry2D = make2D.Edit(geometry3D, new GeometryEditor.CoordinateSequenceOperation((seq, factory) =>
+                {
+                    int count = seq.Count;
+                    var coordinateFactory = geometryFactory.CoordinateSequenceFactory;
+                    var newSeq = coordinateFactory.Create(count, 2); // Correct factory call
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        newSeq.SetX(i, seq.GetX(i));
+                        newSeq.SetY(i, seq.GetY(i));
+                    }
+
+                    return newSeq;
+                }));
+
+                geometry2D.SRID = 0;
+
+                // 3. Save cleaned polygon
+                oldArea.Geometry = (Polygon)geometry2D;
+                context.Update(oldArea);
+                await context.SaveChangesAsync();
+
+                return Ok("Area cleaned and saved successfully.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error: {ex.Message}");
+            }
+        }
+
+
+
+
     }
 }

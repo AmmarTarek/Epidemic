@@ -9,6 +9,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Text.Json;
+using NetTopologySuite.Geometries;
+using NetTopologySuite;
 
 
 
@@ -150,26 +152,44 @@ namespace HealthApi.Controllers
 
         // Get User Profile API (Salem)
         [HttpGet("api/Profile")]
-        //[Authorize] // Requires JWT authentication
+        // [Authorize] // Uncomment when using JWT
         public async Task<IActionResult> GetProfile()
         {
-            // Get user ID from the JWT token
-            //var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); -------------------------------------Remove this in production
-            var userId = 5; 
-
+            // var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // For JWT
+            var userId = 5; // Temporary for testing
 
             if (userId == null)
                 return Unauthorized();
 
             var user = await context.Users.FindAsync(userId);
-
             if (user == null)
                 return NotFound();
 
+            var userLocation = context.UserLocations.FirstOrDefault(i => i.UserId == userId);
+            var longitude = userLocation?.Longitude;
+            var latitude = userLocation?.Latitude;
+
+            // Create a point (note: Coordinate is X=longitude, Y=latitude)
+            var geometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 0);
+            var point = geometryFactory.CreatePoint(new Coordinate((double)longitude, (double)latitude)); // X, Y
+
+            var containingArea = context.RiskAreas
+                                        .FirstOrDefault(a => a.Geometry.Contains(point));
+
+            if (containingArea != null)
+            {
+                Console.WriteLine($"Point is inside: {containingArea.AreaName}");
+            }
+            else
+            {
+                Console.WriteLine("Point is not inside any area.");
+            }
+
             var profile = new ProfileDto
             {
-                FullName = user.FirstName + " " + user.LastName,
-                Email = user.Email
+                FullName = $"{user.FirstName} {user.LastName}",
+                Email = user.Email,
+                AreaName = containingArea?.AreaName ?? "Unknown"
             };
 
             return Ok(profile);

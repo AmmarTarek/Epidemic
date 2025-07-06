@@ -40,6 +40,8 @@ namespace HealthApi
 
             builder.Services.AddHttpClient();
 
+            builder.Services.AddScoped<ReverseGeocodingService>();
+
             builder.Services.AddScoped<IRiskAreaRepository, RiskAreaRepository>();
             builder.Services.AddScoped<IVaccineRecordsRepository, VaccineRecordsRepository>();
             builder.Services.AddScoped<IAuthRepository, AuthRepository>();

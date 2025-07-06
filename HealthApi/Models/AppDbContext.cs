@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using NetTopologySuite;
 
 
 
@@ -28,6 +30,13 @@ namespace HealthApi.Models
 
         public AppDbContext() : base() { }
         public AppDbContext(DbContextOptions options) : base(options) { }
+
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseSqlServer("Server=DESKTOP-1H9P87A\\SQLEXPRESS;Database=TestHealthDb;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False",
+                x => x.UseNetTopologySuite());
+        }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -50,6 +59,10 @@ namespace HealthApi.Models
                 .WithMany()
                 .HasForeignKey(n => n.TatgetUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<RiskArea>()
+                .Property(a => a.Geometry)
+                .HasColumnType("geometry");
         }
     }
 
