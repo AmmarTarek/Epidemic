@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.IdentityModel.Tokens;
+using System.Net.Http;
 using System.Security.Claims;
+using System.Text.Json;
 
 
 
@@ -15,10 +17,12 @@ namespace HealthApi.Controllers
     public class UserController : Controller
     {
         private readonly AppDbContext context;
+        private readonly ReverseGeocodingService _geoService;
 
-        public UserController(AppDbContext context)
+        public UserController(AppDbContext context, ReverseGeocodingService geoService)
         {
             this.context = context;
+            _geoService = geoService;
         }
 
 
@@ -29,7 +33,7 @@ namespace HealthApi.Controllers
             var users = new List<User>();
             try
             {
-                users = context.Users.ToList();
+                users = context.Users.Include(t => t.UserLocation).ToList();
                 if (users == null || !users.Any())
                 {
                     return NotFound("No users found.");
@@ -267,6 +271,8 @@ namespace HealthApi.Controllers
 
             return Ok(new { message = "Location saved successfully." });
         }
+
+
 
 
 

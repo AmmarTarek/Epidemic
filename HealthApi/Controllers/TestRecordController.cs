@@ -2,17 +2,21 @@
 using HealthApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace HealthApi.Controllers
 {
     public class TestRecordController : Controller
     {
         private readonly AppDbContext context;
+        private readonly HttpClient _httpClient;
 
-        public TestRecordController (AppDbContext context) 
+        public TestRecordController (AppDbContext context , HttpClient httpClient) 
         {
             this.context = context;
+            _httpClient = httpClient;
         }
 
 
@@ -49,5 +53,47 @@ namespace HealthApi.Controllers
 
             return Ok(testRecordsDetailsList);
         }
+
+        [HttpGet("api/TestRecords/AllRecords")]
+        public IActionResult GetAllTestRecords([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 5)
+        {
+            var totalCount = context.TestRecords.Count();
+            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+            var testRecords = context.TestRecords
+                .Include(t => t.User)
+                .Include(t => t.TestType)
+                .Include(t => t.Lab)
+                .OrderByDescending(t => t.DateAdministered)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var testRecordsDetailsList = testRecords.Select(testRecord => new AllTestRecordsDTO
+            {
+                TestId = testRecord.RecordId,
+                PatientName = testRecord.User.FirstName + " " + testRecord.User.LastName,
+                TestTypeName = testRecord.TestType.TestName,
+                LabName = testRecord.Lab.LabName,
+                PatientGender = testRecord.User.Sex,
+                PatientEmail = testRecord.User.Email,
+                PatientPhone = testRecord.User.PhoneNumber,
+                AreaName = "Location", // or real one if needed
+                Result = testRecord.Result,
+                TestDate = testRecord.DateAdministered,
+                LabContactInfo = testRecord.Lab.ContactInfo,
+                TestDetails = testRecord.Details
+            }).ToList();
+
+            return Ok(new
+            {
+                records = testRecordsDetailsList,
+                totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+            });
+        }
+
+
+
+
     }
 }
