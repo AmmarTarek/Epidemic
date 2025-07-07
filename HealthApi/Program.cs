@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using HealthApi.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using HealthApi.Models;
 using HealthApi.Repository;
 using HealthApi.Repository.Repos_A;
+using HealthApi.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -39,6 +40,8 @@ namespace HealthApi
             builder.Services.AddSwaggerGen();
 
             builder.Services.AddHttpClient();
+            builder.Services.AddScoped<LocationAnalysisService>();
+
 
             builder.Services.AddScoped<ReverseGeocodingService>();
 

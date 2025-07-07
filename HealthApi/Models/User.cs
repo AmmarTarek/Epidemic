@@ -12,6 +12,7 @@ public class User
     public DateTime DateOfBirth { get; set; }
     public string Sex { get; set; } = null!;
     public string Job { get; set; } = null!;
+    public string? AreaName { get; set; }    // Optional field for area name
     public bool? IsFlagged { get; set; } = false;
     public int RoleId { get; set; } = 1; // Default to User role
     public Role Role { get; set; } = null!;

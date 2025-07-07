@@ -9,6 +9,8 @@
         public string Gender { get; set; }
         public bool IsFlagged { get; set; }
         public bool EPass { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
 
     }
 }

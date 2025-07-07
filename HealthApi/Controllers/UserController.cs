@@ -1,16 +1,17 @@
 ﻿using HealthApi.DTO;
 using HealthApi.Models;
+using HealthApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.IdentityModel.Tokens;
+using NetTopologySuite;
+using NetTopologySuite.Geometries;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Text.Json;
-using NetTopologySuite.Geometries;
-using NetTopologySuite;
 
 
 
@@ -20,11 +21,13 @@ namespace HealthApi.Controllers
     {
         private readonly AppDbContext context;
         private readonly ReverseGeocodingService _geoService;
+        private readonly LocationAnalysisService _locationAnalysisService;
 
-        public UserController(AppDbContext context, ReverseGeocodingService geoService)
+        public UserController(AppDbContext context, ReverseGeocodingService geoService, LocationAnalysisService locationAnalysisService)
         {
             this.context = context;
             _geoService = geoService;
+            _locationAnalysisService = locationAnalysisService;
         }
 
 
@@ -79,10 +82,10 @@ namespace HealthApi.Controllers
                         (u.FirstName + " " + u.LastName).Contains(filter.UserName));
                 }
 
-                //if (!string.IsNullOrEmpty(filter.AreaName))
-                //{
-                //    usersQuery = usersQuery.Where(u => u.AreaName.Contains(filter.AreaName)); -------------------------------------Remove this in production
-                //}
+                if (!string.IsNullOrEmpty(filter.AreaName))
+                {
+                    usersQuery = usersQuery.Where(u => u.AreaName.Contains(filter.AreaName)); 
+                }
 
                 if (!string.IsNullOrEmpty(filter.Gender))
                 {
@@ -139,7 +142,11 @@ namespace HealthApi.Controllers
                     Gender = user.Sex,
                     IsFlagged = user.IsFlagged ?? false,
                     EPass = (bool)(context.EPasses.FirstOrDefault(ep => ep.EPassID == user.EPassStatusId)?.Status),
-                    Age = (DateTime.UtcNow - user.DateOfBirth).Days / 365
+                    Age = (DateTime.UtcNow - user.DateOfBirth).Days / 365,
+                    AreaName = _locationAnalysisService.GetContainingAreaName(user.UserId) ?? "Unknown",
+                    Latitude = user.UserLocation?.Latitude,
+                    Longitude = user.UserLocation?.Longitude,
+
                 }).ToList();
 
                 return Ok(userDetailsList);
@@ -156,7 +163,7 @@ namespace HealthApi.Controllers
         public async Task<IActionResult> GetProfile()
         {
             // var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // For JWT
-            var userId = 5; // Temporary for testing
+            var userId = 1003; // Temporary for testing
 
             if (userId == null)
                 return Unauthorized();
@@ -165,31 +172,14 @@ namespace HealthApi.Controllers
             if (user == null)
                 return NotFound();
 
-            var userLocation = context.UserLocations.FirstOrDefault(i => i.UserId == userId);
-            var longitude = userLocation?.Longitude;
-            var latitude = userLocation?.Latitude;
+            var areaName = _locationAnalysisService.GetContainingAreaName(userId);
 
-            // Create a point (note: Coordinate is X=longitude, Y=latitude)
-            var geometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 0);
-            var point = geometryFactory.CreatePoint(new Coordinate((double)longitude, (double)latitude)); // X, Y
-
-            var containingArea = context.RiskAreas
-                                        .FirstOrDefault(a => a.Geometry.Contains(point));
-
-            if (containingArea != null)
-            {
-                Console.WriteLine($"Point is inside: {containingArea.AreaName}");
-            }
-            else
-            {
-                Console.WriteLine("Point is not inside any area.");
-            }
 
             var profile = new ProfileDto
             {
                 FullName = $"{user.FirstName} {user.LastName}",
                 Email = user.Email,
-                AreaName = containingArea?.AreaName ?? "Unknown"
+                AreaName = areaName ?? "Unknown"
             };
 
             return Ok(profile);
@@ -237,8 +227,8 @@ namespace HealthApi.Controllers
         [HttpPost("api/Location/SaveUserLocation")]
         public async Task<IActionResult> SaveLocation([FromBody] LocationDto dto)
         {
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            //var userIdString = "1003"; // For testing, replace with actual user ID retrieval logic ------------------------------------- Remove this in production
+            //var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userIdString = "1003"; // For testing, replace with actual user ID retrieval logic ------------------------------------- Remove this in production
 
             if (!int.TryParse(userIdString, out var userId))
                 return Unauthorized();
@@ -262,6 +252,7 @@ namespace HealthApi.Controllers
                 {
                     user.LocationId = existingLocation.LocationId;
                     context.Users.Update(user);
+
                 }
             }
             else
@@ -284,13 +275,65 @@ namespace HealthApi.Controllers
                 {
                     user.LocationId = newLocation.LocationId;
                     context.Users.Update(user);
+
                 }
             }
+
+            var userDB = await context.Users.FindAsync(userId);
+            userDB.AreaName = _locationAnalysisService.GetContainingAreaName(userId); //--------------
+            context.Users.Update(userDB);
 
             await context.SaveChangesAsync(); // Final save for either path
 
             return Ok(new { message = "Location saved successfully." });
         }
+
+        [HttpGet("api/Location/GetUserLocation")]
+        public async Task<IActionResult> GetUserLocation()
+        {
+            //var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userIdString = "1003"; // For testing, replace with actual user ID retrieval logic ------------------------------------- Remove this in production
+
+            if (!int.TryParse(userIdString, out var userId))
+                return Unauthorized();
+
+            // Try to find an existing location for this user
+            UserLocation? existingLocation = await context.UserLocations
+                .FirstOrDefaultAsync(l => l.UserId == userId);
+
+            if (existingLocation != null)
+            {
+                return Ok(new
+                {
+                    latitude = existingLocation.Latitude,
+                    longitude = existingLocation.Longitude
+                });
+            }
+
+            return NotFound("User location not found");
+        }
+
+        [HttpGet("api/Location/GetUserAreaState")]
+        public async Task<IActionResult> GetUserAreaState() 
+        {
+            //var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userIdString = "1003"; // For testing, replace with actual user ID retrieval logic ------------------------------------- Remove this in production
+            
+            if (!int.TryParse(userIdString, out var userId))
+                return Unauthorized();
+
+            var areaState = _locationAnalysisService.GetContainingAreaRiskState(userId);
+            if (areaState == null)
+                return NotFound("User location not found or not in a risk area.");
+
+            var riskState = _locationAnalysisService.GetContainingAreaRiskState(userId);
+            if (riskState == null)
+                return NotFound("Risk state not found for the user's area.");
+
+            return Ok(new { RiskState = riskState });
+        }
+
+
 
 
 

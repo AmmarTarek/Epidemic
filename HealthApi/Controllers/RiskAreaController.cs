@@ -1,10 +1,12 @@
 ﻿using HealthApi.Models;
 using HealthApi.Repository;
 using Microsoft.AspNetCore.Mvc;
-using NetTopologySuite.Geometries.Utilities;
-using NetTopologySuite.Geometries;
-using NetTopologySuite.IO;
+using Microsoft.EntityFrameworkCore;
 using NetTopologySuite;
+using NetTopologySuite.Features;
+using NetTopologySuite.Geometries;
+using NetTopologySuite.Geometries.Utilities;
+using NetTopologySuite.IO;
 
 namespace HealthApi.Controllers
 {
@@ -100,6 +102,32 @@ namespace HealthApi.Controllers
             {
                 return BadRequest($"Error: {ex.Message}");
             }
+        }
+
+        [HttpGet("GetRiskAreas")]
+        public async Task<IActionResult> GetRiskAreas()
+        {
+            var areas = await context.RiskAreas.ToListAsync();
+
+            var featureCollection = new FeatureCollection();
+
+            foreach (var area in areas)
+            {
+                var attributes = new AttributesTable
+            {
+                { "id", area.AreaId },
+                { "name", area.AreaName },
+                { "riskLevel", area.RiskLevel }
+            };
+
+                var feature = new Feature(area.Geometry, attributes);
+                featureCollection.Add(feature);
+            }
+
+            var writer = new GeoJsonWriter();
+            var geoJson = writer.Write(featureCollection);
+
+            return Content(geoJson, "application/json");
         }
 
 
