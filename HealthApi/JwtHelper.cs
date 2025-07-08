@@ -7,32 +7,6 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace HealthApi
 {
-    //public class JwtHelper
-    //{
-    //    public static string GenerateJwtToken(User user, IConfiguration config)
-    //    {
-    //        var claims = new[]
-    //        {
-    //        new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-    //        new Claim(ClaimTypes.Email, user.Email),
-    //        new Claim(ClaimTypes.Role, user.Role.RoleName),
-    //    };
-
-    //        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
-    //        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
-
-    //        var token = new JwtSecurityToken(
-    //            claims: claims,
-    //            expires: DateTime.Now.AddDays(1),
-    //            signingCredentials: creds,
-    //            issuer: config["Jwt:Issuer"],
-    //            audience: config["Jwt:Audience"]
-    //        );
-
-    //        return new JwtSecurityTokenHandler().WriteToken(token);
-    //    }
-    //}
-
     public static class JwtHelper
     {
         public static string GenerateJwtToken(User user, IConfiguration config)
@@ -53,7 +27,8 @@ namespace HealthApi
             {
             new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Name, user.FirstName + " " + user.LastName)
+            new Claim(ClaimTypes.Name, user.FirstName + " " + user.LastName),
+            new Claim("RoleId", user.RoleId.ToString())
         };
 
             var token = new JwtSecurityToken(

@@ -74,8 +74,8 @@ namespace HealthApi
             // 👇 Apply the CORS policy before authorization/mapping
             app.UseCors("AllowFrontend");
 
-            app.UseAuthorization();
             app.UseAuthentication();
+            app.UseAuthorization();
             app.MapControllers();
 
             app.Run();

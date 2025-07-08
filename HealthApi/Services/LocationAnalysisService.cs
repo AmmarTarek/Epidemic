@@ -22,6 +22,7 @@ namespace HealthApi.Services
 
         public string? GetContainingAreaName(int userId)
         {
+            if (userId == null) return null;
             var userLocation = _context.UserLocations
                                        .FirstOrDefault(u => u.UserId == userId);
 

@@ -34,7 +34,7 @@ namespace HealthApi.Models
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer("Server=MAHMOUD_PC;Database=TestHealthDb;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False",
+            optionsBuilder.UseSqlServer("Server=DESKTOP-1H9P87A\\SQLEXPRESS;Database=TestHealthDb;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False",
                 x => x.UseNetTopologySuite());
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
