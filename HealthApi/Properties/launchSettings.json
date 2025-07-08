@@ -4,17 +4,17 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://localhost:63832",
+      "applicationUrl": "http://0.0.0.0:63832",
       "sslPort": 0
     }
   },
   "profiles": {
-    "http": {
+    "HealthApi": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
       "launchUrl": "swagger",
-      "applicationUrl": "http://localhost:5173",
+      "applicationUrl": "http://0.0.0.0:63832",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
@@ -29,3 +29,4 @@
     }
   }
 }
+

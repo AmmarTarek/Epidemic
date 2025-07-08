@@ -190,7 +190,6 @@ namespace HealthApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class VaccineRecordController : ControllerBase
     {
         private readonly IVaccineRecordsRepository _vacRepo;

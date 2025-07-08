@@ -62,6 +62,18 @@ namespace HealthApi
                         ValidAudience = builder.Configuration["Jwt:Audience"]
                     };
                 });
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy
+                        .AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
+                });
+            });
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -71,8 +83,9 @@ namespace HealthApi
                 app.UseSwaggerUI();
             }
 
+            app.UseCors("AllowAll");
             // 👇 Apply the CORS policy before authorization/mapping
-            app.UseCors("AllowFrontend");
+            //app.UseCors("AllowFrontend");
 
             app.UseAuthentication();
             app.UseAuthorization();

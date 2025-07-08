@@ -99,7 +99,7 @@ using System.Security.Claims;
 
 namespace HealthApi.Controllers
 {
-    [Authorize]
+    //[Authorize]
     public class NotificationsController : Controller
     {
         private readonly AppDbContext _context;
@@ -141,6 +141,7 @@ namespace HealthApi.Controllers
         }
 
         // Get Notifications for Logged-in User
+        [Authorize]
         [HttpGet("api/GetMyNotifications")]
         public IActionResult GetMyNotifications(int pageNumber = 1, int pageSize = 5)
         {
