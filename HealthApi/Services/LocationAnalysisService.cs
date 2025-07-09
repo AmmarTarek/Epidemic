@@ -119,5 +119,53 @@ namespace HealthApi.Services
 
         private double ToRadians(double deg) => deg * (Math.PI / 180);
 
+
+        public async Task<List<int>> TraceExposedUsers(int infectedUserId, DateTime testDate)
+        {
+            var exposureRadius = 50.0; // meters
+            var timeWindow = TimeSpan.FromHours(1);
+            var daysBack = 5;
+
+            var startDate = testDate.AddDays(-daysBack);
+            var endDate = testDate;
+
+            var geometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+
+            // Step 1: Get infected user's check-ins in last 5 days
+            var infectedCheckIns = await _context.AnonymousCheckIns
+                .Where(ci => ci.UserId == infectedUserId && ci.Time >= startDate && ci.Time <= endDate)
+                .ToListAsync();
+
+            var potentiallyExposedUsers = new HashSet<int>();
+
+            foreach (var checkIn in infectedCheckIns)
+            {
+                var buffer = checkIn.Location.Buffer(exposureRadius / 111_000); // ~meters to degrees
+
+                var minTime = checkIn.Time - timeWindow;
+                var maxTime = checkIn.Time + timeWindow;
+
+                // Step 2: Find other check-ins within buffer and time window
+                var nearbyCheckIns = await _context.AnonymousCheckIns
+                    .Where(ci =>
+                        ci.UserId != infectedUserId &&
+                        ci.Time >= minTime &&
+                        ci.Time <= maxTime &&
+                        ci.Location.IsWithinDistance(checkIn.Location, exposureRadius / 111_000))
+                    .Select(ci => ci.UserId)
+                    .ToListAsync();
+
+                foreach (var uid in nearbyCheckIns)
+                    potentiallyExposedUsers.Add(uid);
+            }
+
+            return potentiallyExposedUsers.ToList();
+        }
+
+        internal async Task<IEnumerable<object>> TraceExposedUsers(object userId, object testDate)
+        {
+            throw new NotImplementedException();
+        }
     }
+
 }

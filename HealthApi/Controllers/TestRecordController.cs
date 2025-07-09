@@ -105,6 +105,7 @@ using HealthApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using System.Security.Claims;
 
 namespace HealthApi.Controllers
@@ -286,6 +287,70 @@ namespace HealthApi.Controllers
             });
         }
 
+        [HttpPost("ChangeTestState")]
+        public async Task<IActionResult> ChangeTestState([FromBody] ChangeTestStateRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.NewState))
+                return BadRequest("NewState is required.");
+
+            var testRecord = await _context.TestRecords
+                .Include(t => t.User) // Optional: if you need user data
+                .FirstOrDefaultAsync(t => t.RecordId == request.TestId);
+
+            if (testRecord == null)
+                return NotFound("Test record not found.");
+
+            var allowedStates = new[] { "positive", "negative", "pending" };
+            var normalizedState = request.NewState.ToLower();
+
+            if (!allowedStates.Contains(normalizedState))
+                return BadRequest("Invalid test state.");
+
+            testRecord.Result = normalizedState;
+
+            // ✅ If Positive, Notify User + Trace Contacts
+            if (normalizedState == "positive")
+            {
+                // 🔔 Notify the user
+                var userNotification = new Notification
+                {
+                    TatgetUserId = testRecord.UserId,
+                    Title = "COVID-19 Positive Result",
+                    Message = "You have tested positive. Please follow health guidelines and stay isolated."
+                };
+                _context.Notifications.Add(userNotification);
+
+                // 🧠 Trace exposed users using service
+                var exposedUsers = await _locationAnalysisService.TraceExposedUsers(testRecord.UserId, testRecord.DateAdministered);
+
+                foreach (var userId in exposedUsers)
+                {
+                    var notification = new Notification
+                    {
+                        TatgetUserId = userId,
+                        Title = "Possible Exposure Alert",
+                        Message = "You may have been near someone who tested positive. Please take a test and monitor your symptoms."
+                    };
+                    _context.Notifications.Add(notification);
+                }
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Test state and notifications updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error updating test state: {ex.Message}");
+            }
+        }
+
+        public class ChangeTestStateRequest
+        {
+            public int TestId { get; set; }
+            public string NewState { get; set; }
+        }
         public class TestAssignmentRequest
         {
             public List<int> UserIds { get; set; }
