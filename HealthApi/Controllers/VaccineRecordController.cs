@@ -181,6 +181,7 @@
 using HealthApi.DTO;
 using HealthApi.Models;
 using HealthApi.Repository;
+using HealthApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -194,18 +195,51 @@ namespace HealthApi.Controllers
     {
         private readonly IVaccineRecordsRepository _vacRepo;
         private readonly AppDbContext _context;
+        private readonly LocationAnalysisService _locationAnalysisService;
 
-        public VaccineRecordController(IVaccineRecordsRepository vacRepo, AppDbContext context)
+
+        public VaccineRecordController(IVaccineRecordsRepository vacRepo, AppDbContext context, LocationAnalysisService locationAnalysisService)
         {
             _vacRepo = vacRepo;
             _context = context;
+            _locationAnalysisService = locationAnalysisService;
         }
 
-        [HttpGet]
-        public ActionResult GetAll()
+        [HttpGet("AllRecords")]
+        public async Task<IActionResult> GetAllVaccineRecords(int pageNumber = 1, int pageSize = 5)
         {
-            var records = _vacRepo.GetAll();
-            return Ok(records);
+            var totalCount = await _context.VaccineRecords.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            var records = await _context.VaccineRecords
+                .OrderByDescending(v => v.DateOfAssignment)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(v => new VaccineRecordAllDto
+                {
+                    VaccineId = v.VaccineTypeId,
+                    PatientName = v.User.FirstName + " " + v.User.LastName,
+                    VaccineTypeName = v.VaccineType.VaccineName,
+                    PatientGender = v.User.Sex,
+                    PatientEmail = v.User.Email,
+                    PatientPhone = v.User.PhoneNumber,
+                    AreaName = v.User.AreaName,
+                    Status = v.Status,
+                    VaccinationDate = v.DateOfVaccined ?? DateTime.MinValue, // Safe handling
+                    ClinicName = v.Lab.LabName,
+                    ClinicContactInfo = v.Lab.ContactInfo,
+                    VaccineDetails = v.VaccineType.Description,
+                    DateOfAssignment = v.DateOfAssignment,
+                    userId = v.UserId,
+                })
+                .ToListAsync();
+
+
+            return Ok(new
+            {
+                records,
+                totalPages
+            });
         }
 
         [HttpGet("by-id/{id:int}")]
@@ -253,15 +287,36 @@ namespace HealthApi.Controllers
             return Ok(record);
         }
 
-        [HttpPost]
-        public IActionResult AssignNewRecord([FromBody] VaccineRecordsDTO newVac)
+        [HttpPost("assign")]
+        public async Task<IActionResult> AssignVaccine([FromBody] VaccineAssignmentRequest request)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (request.UserIds == null || !request.UserIds.Any())
+                return BadRequest("No user IDs provided.");
 
-            _vacRepo.Add(newVac);
-            _vacRepo.Save();
+            foreach (var userId in request.UserIds)
+            {
+                var lab = _locationAnalysisService.GetClosestLab(userId);
+                var assignment = new VaccineRecord
+                {
+                    UserId = userId,
+                    VaccineTypeId = request.VaccineTypeId,
+                    DateOfAssignment = request.AssignmentDate,
+                    Status = "Pending",
+                    LabId = lab.LabId,
 
-            return Ok(new { data = newVac, Message = "Record added successfully" });
+                };
+                _context.VaccineRecords.Add(assignment);
+
+                var newNotification = new Notification();
+                newNotification.TatgetUserId = userId;
+                newNotification.Title = "A new vaccine has been assigned to you";
+                newNotification.Message = $"Please consider going to the assigned Lab '{lab.LabName}' to take your vaccine as fast as possible.";
+
+                _context.Notifications.Add(newNotification);
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Vaccine assigned successfully." });
         }
 
         [HttpPut("{id:int}")]
@@ -301,10 +356,45 @@ namespace HealthApi.Controllers
                     DateOfVaccined = record.DateOfVaccined,
                     LabName = record.Lab.LabName,
                     ContactInfo = record.Lab.ContactInfo,
-                    StatusMessage = record.StatusMessage
-                }).ToList();
+                    StatusMessage = record.StatusMessage,
+                    LabId = record.Lab.LabId,
+                })
+                .OrderByDescending(record => record.DateOfAssignment) // ✅ Sort by assignment date
+                .ToList();
 
             return Ok(vaccineRecordsDetailsList);
         }
+
+        [HttpGet("types")]
+        public async Task<IActionResult> GetVaccineTypes()
+        {
+            var types = await _context.VaccineTypes
+                .Select(v => new
+                {
+                    v.VaccineId,
+                    v.VaccineName
+                })
+                .ToListAsync();
+
+            return Ok(types);
+        }
+
+        public class VaccineAssignmentRequest
+        {
+            public List<int> UserIds { get; set; }
+            public int VaccineTypeId { get; set; }
+            public DateTime AssignmentDate { get; set; } = DateTime.Now;
+        }
+        public class VaccineType
+        {
+            public int VaccineTypeId { get; set; }
+            public string Name { get; set; }
+        }
+
+
     }
+
+
+
+
 }

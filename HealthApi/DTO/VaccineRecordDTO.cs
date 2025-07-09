@@ -3,6 +3,7 @@
     public class VaccineRecordDTO
     {
         public string VaccineTypeName { get; set; }
+        public int LabId { get; set; }
         public string Status { get; set; }
         public DateTime DateOfAssignment { get; set; }
         public DateTime? DateOfVaccined { get; set; }

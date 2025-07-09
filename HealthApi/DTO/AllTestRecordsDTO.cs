@@ -14,6 +14,7 @@
         public string PatientEmail { get; set; }
         public string PatientPhone { get; set; }
         public string AreaName { get; set; }
+        public int userId { get; set; }
 
     }
 }

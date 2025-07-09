@@ -397,10 +397,24 @@ namespace HealthApi.Controllers
             if (permit.Status == "Accepted")
             {
                 user.EPassStatusId = 2;
+
+                context.Notifications.Add(new Notification
+                {
+                    TatgetUserId = permit.UserId,
+                    Title = "Permit Request Approved",
+                    Message = "Your permit request has been approved. Your E-Pass has been updated accordingly."
+                });
             }
             else 
             {
                 user.EPassStatusId = 4;
+
+                context.Notifications.Add(new Notification
+                {
+                    TatgetUserId = permit.UserId,
+                    Title = "Permit Request Denied",
+                    Message = "Your permit request has been denied. Your E-Pass status has been updated accordingly."
+                });
             }
             context.Users.Update(user);
 

@@ -3,6 +3,7 @@
     public class TestRecordDetailsDTO
     {
         public int TestId { get; set; }
+        public int LabId { get; set; }
         public string TestTypeName { get; set; }
         public string? TestDetails { get; set; }
         public string Result { get; set; }
